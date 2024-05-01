@@ -2,12 +2,21 @@ import pickle
 import numpy as np
 import matplotlib.pyplot as plt
 from numpy.typing import NDArray
-from sklearn.metrics import confusion_matrix
 from scipy.stats import multivariate_normal
-
+ 
 # ----------------------------------------------------------------------
 
 
+def confusion_matrix(y_true, y_pred):
+    classes = np.unique(np.concatenate((y_true, y_pred)))
+    
+    conf_matrix = np.zeros((len(classes), len(classes)), dtype=int)
+    
+    for i, true_label in enumerate(classes):
+        for j, pred_label in enumerate(classes):
+            conf_matrix[i, j] = np.sum((y_true == true_label) & (y_pred == pred_label))
+    
+    return conf_matrix
 
 def em_algorithm(data, max_iter=100):
     n, d = data.shape 
