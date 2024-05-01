@@ -198,8 +198,8 @@ def spectral_clustering():
         cluster_analysis['SSE'] = sse
 
         groups.append(cluster_analysis)
-
-    answers["cluster parameters"] = groups
+    indexed_dict = {i: entry for i, entry in enumerate(groups)}
+    answers["cluster parameters"] = indexed_dict
     answers["1st group, SSE"] = groups[0]['SSE']
 
     greatest_ari = max(all_aris)
