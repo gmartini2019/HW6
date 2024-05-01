@@ -133,7 +133,7 @@ def jarvis_patrick_clustering():
     data_segments = [data[500*i:500*(i+1)] for i in range(5)]
     label_segments = [labels[500*i:500*(i+1)] for i in range(5)]
 
-    smins = [0.5, 3, 0.2, 1, 0.1, 0.01, 0.9, 0.75, 2, 0.25]
+    smins = [0.5, 3, 0.2, 1, 0.1, 0.01, 0.9, 4, 2, 0.25]
     k = [3,4,5,6,7,8]
 
 

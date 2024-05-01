@@ -236,7 +236,7 @@ def spectral_clustering():
     index_of_smallest_sse = tested_SSE.index(smallest_sse)
     plot_ARI = plot_clusters(data_segments[index_of_greatest_ari], tested_labels[index_of_greatest_ari], f"Clusters with Largest ARI (Sigma={tested_sigmas[index_of_best_sigma]})")
 
-    plot_SSE = plot_clusters(testing_data, tested_labels[index_of_smallest_sse], f"Clusters with Smallest SSE (Sigma={tested_sigmas[index_of_smallest_sse]})")
+    plot_SSE = plot_clusters(testing_data, tested_labels[index_of_best_sigma], f"Clusters with Smallest SSE (Sigma={tested_sigmas[index_of_best_sigma]})")
 
 
     answers["cluster scatterplot with largest ARI"] = plot_ARI
