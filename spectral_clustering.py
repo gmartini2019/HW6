@@ -119,7 +119,7 @@ def spectral_clustering():
     sigmas = [0.09, 0.1, 0.15, 0.2, 0.3, 0.5, 1, 0.8, 0.95, 2.5]
 
     groups = []
-
+    answers["spectral_function"] = spectral
     testing_data = data_segments[0]
     testing_labels = label_segments[0]
 
