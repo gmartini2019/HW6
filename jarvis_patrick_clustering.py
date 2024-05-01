@@ -122,11 +122,10 @@ def jarvis_patrick_clustering():
         answers (dict): A dictionary containing the clustering results.
     """
 
-    answers = {}
-    answers["jarvis_patrick_function"] = jarvis_patrick
 
-    data = np.load('cluster_data.npy')
-    labels = np.load('cluster_labels.npy')
+
+    data = np.load('question1_cluster_data.npy')
+    labels = np.load('question1_cluster_labels.npy')
 
     data = data[:2500]
     labels = labels[:2500]
@@ -138,7 +137,8 @@ def jarvis_patrick_clustering():
     k = [3,4,5,6,7,8]
 
 
-
+    answers = {}
+    answers["jarvis_patrick_function"] = jarvis_patrick
 
     groups = []
 

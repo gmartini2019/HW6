@@ -107,8 +107,8 @@ def spectral_clustering():
     """
 
     answers = {}
-    data = np.load('cluster_data.npy')
-    labels = np.load('cluster_labels.npy')
+    data = np.load('question1_cluster_data.npy')
+    labels = np.load('question1_cluster_labels.npy')
 
     data = data[:5000]
     labels = labels[:5000]
