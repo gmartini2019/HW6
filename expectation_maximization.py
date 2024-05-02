@@ -2,8 +2,7 @@ import pickle
 import numpy as np
 import matplotlib.pyplot as plt
 from numpy.typing import NDArray
-from scipy.stats import multivariate_normal
- 
+
 # ----------------------------------------------------------------------
 
 
@@ -18,44 +17,6 @@ def confusion_matrix(y_true, y_pred):
     
     return conf_matrix
 
-def em_algorithm(data, max_iter=100):
-    n, d = data.shape 
-    K = 2  
-    
-    np.random.seed(0)  
-    means = np.random.rand(K, d)  
-    covariances = np.array([np.eye(d)] * K)  
-    weights = np.random.dirichlet(np.ones(K), size=1).flatten()  
-
-    log_likelihoods = []
-
-    for iteration in range(max_iter):
-        responsibilities = np.zeros((n, K))
-        for k in range(K):
-            responsibilities[:, k] = weights[k] * multivariate_normal.pdf(data, means[k], covariances[k])
-        sum_responsibilities = responsibilities.sum(axis=1, keepdims=True)
-        responsibilities /= sum_responsibilities
-
-        effective_n = responsibilities.sum(axis=0)
-        for k in range(K):
-            means[k] = np.sum(responsibilities[:, k].reshape(-1, 1) * data, axis=0) / effective_n[k]
-            diff = data - means[k]
-            covariances[k] = np.dot(responsibilities[:, k] * diff.T, diff) / effective_n[k]
-            weights[k] = effective_n[k] / n
-
-        log_likelihood = np.sum(np.log(sum_responsibilities))
-        log_likelihoods.append(log_likelihood)
-
-
-    order = np.argsort(means[:, 0])[::-1]  
-    means = means[order]
-    covariances = covariances[order]
-    weights = weights[order]
-
-    return weights, means, covariances, log_likelihoods
-
-
-
 def compute_SSE(data, labels):
     """
     Calculate the sum of squared errors (SSE) for a clustering.
@@ -67,6 +28,7 @@ def compute_SSE(data, labels):
     Returns:
     - sse: the sum of squared errors
     """
+    # ADD STUDENT CODE
     sse = 0.0
     for i in np.unique(labels):
         cluster_points = data[labels == i]
@@ -196,7 +158,7 @@ def multivariate_pdf(data, mean, cov):
 
 def extract_samples(
     data: NDArray[np.floating], labels: NDArray[np.int32], num_samples: int
-) -> tuple[NDArray[np.floating], NDArray[np.int32]]:
+):
     """
     Extract random samples from data and labels.
 
@@ -218,13 +180,7 @@ def extract_samples(
 # ----------------------------------------------------------------------
 
 
-def em_algorithm(data: NDArray[np.floating], max_iter: int = 100) -> tuple[
-    NDArray[np.floating] | None,
-    NDArray[np.floating] | None,
-    NDArray[np.floating] | None,
-    NDArray[np.floating] | None,
-    NDArray[np.floating] | None,
-]:
+def em_algorithm(data: NDArray[np.floating], max_iter: int = 100):
     """
     Arguments:
     - data: numpy array of shape 50,000 x 2
@@ -248,40 +204,73 @@ def em_algorithm(data: NDArray[np.floating], max_iter: int = 100) -> tuple[
     """
     # CODE FILLED BY STUDENT
 
-    n, d = data.shape 
-    K = 2  
-    
-    np.random.seed(0)  
-    means = np.random.rand(K, d)  
-    covariances = np.array([np.eye(d)] * K)  
-    weights = np.random.dirichlet(np.ones(K), size=1).flatten()  
+    n, d = data.shape
 
+    # Initialize parameters randomly
+    weights = np.random.rand(2)
+    weights /= np.sum(weights)
+    means = np.random.rand(2, d)
+    covariances = np.array([np.eye(d)] * 2)
+
+    # log_likelihood
     log_likelihoods = []
 
-    for iteration in range(max_iter):
-        responsibilities = np.zeros((n, K))
-        for k in range(K):
-            responsibilities[:, k] = weights[k] * multivariate_normal.pdf(data, means[k], covariances[k])
-        sum_responsibilities = responsibilities.sum(axis=1, keepdims=True)
-        responsibilities /= sum_responsibilities
+    # Probability storage
+    probabilities = np.zeros((n, 2))
 
-        effective_n = responsibilities.sum(axis=0)
-        for k in range(K):
-            means[k] = np.sum(responsibilities[:, k].reshape(-1, 1) * data, axis=0) / effective_n[k]
-            diff = data - means[k]
-            covariances[k] = np.dot(responsibilities[:, k] * diff.T, diff) / effective_n[k]
-            weights[k] = effective_n[k] / n
+    for _ in range(max_iter):
+        # E-step: update probabilities
+        probabilities = np.array(
+            [
+                multivariate_pdf(data, mean, cov)
+                # multivariate_normal.pdf(data, mean, cov)
+                for mean, cov in zip(means, covariances)
+            ]
+        ).T
 
-        log_likelihood = np.sum(np.log(sum_responsibilities))
+        # Normalize the probabilities
+        responsibilities = probabilities * weights
+        responsibilities /= responsibilities.sum(axis=1, keepdims=True)
+
+        # Compute log-likelihood
+        weighted_sum = np.sum(probabilities * weights, axis=1)
+        log_likelihood = np.sum(np.log(weighted_sum))
         log_likelihoods.append(log_likelihood)
 
+        # M-step: update parameters
+        for i in range(2):
+            weight = responsibilities[:, i].sum()
+            weights[i] = weight / n
+            means[i] = (
+                np.sum(data * responsibilities[:, i][:, np.newaxis], axis=0) / weight
+            )
+            cov_diff = data - means[i]
+            covariances[i] = (
+                np.dot(cov_diff.T, cov_diff * responsibilities[:, i][:, np.newaxis])
+                / weight
+            )
 
-    order = np.argsort(means[:, 0])[::-1]  
-    means = means[order]
-    covariances = covariances[order]
-    weights = weights[order]
+    # Order the distributions such that the x-component of the means are ordered from largest to smallest
+    # print(f"{responsibilities.shape=}")
+    if means[0][0] < means[1][0]:
+        weights = np.flip(weights)
+        means = np.flip(means, axis=0)
+        covariances = np.flip(covariances, axis=0)
+        responsibilities = np.flip(responsibilities, axis=1)
 
-    return weights, means, log_likelihood, covariances
+    # Compute the predicted labels for the probabilities in the correct order.
+    # probability 0 has the largeset x component of the mean
+    predicted_labels = np.argmax(responsibilities, axis=1)
+
+    return (
+        weights,
+        means,
+        covariances,
+        np.array(log_likelihoods),
+        predicted_labels,
+    )
+    # added predicted_labels. Fix type hints in function signature
+
 
 # ----------------------------------------------------------------------
 def gaussian_mixture():
