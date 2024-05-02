@@ -29,9 +29,7 @@ def plot_clusters(data, labels, title):
     plt.ylabel("Feature 2")
     plt.grid(True)
     plt.colorbar(label='Cluster label')
-    plt.savefig(f'/Users/giuliomartini/Desktop/FSU/DATA MINING/report/{title}.png')
     plt.show()
-
     return s
 
 def plot_eigenvalues(eigenvalues, title):
@@ -41,9 +39,7 @@ def plot_eigenvalues(eigenvalues, title):
     plt.xlabel("Index of Eigenvalue")
     plt.ylabel("Eigenvalue")
     plt.grid(True)
-    plt.savefig(f'/Users/giuliomartini/Desktop/FSU/DATA MINING/report/{title}.png')
     plt.show()
-    
     return s
 
 def adjusted_rand_index(labels_true, labels_pred):
@@ -64,6 +60,7 @@ def adjusted_rand_index(labels_true, labels_pred):
         return 0
     else:
         return numerator / denominator
+ 
 
 def spectral(data, labels ,params_dict):
     n_clusters = params_dict['k']
@@ -112,7 +109,7 @@ def spectral_clustering():
     sigmas = [0.09, 0.1, 0.15, 0.2, 0.3, 0.5, 1, 0.8, 0.95, 2.5]
 
     groups = []
-
+    answers["spectral_function"] = spectral
     testing_data = data_segments[0]
     testing_labels = label_segments[0]
 
@@ -191,8 +188,8 @@ def spectral_clustering():
         cluster_analysis['SSE'] = sse
 
         groups.append(cluster_analysis)
-
-    answers["cluster parameters"] = groups
+    indexed_dict = {i: entry for i, entry in enumerate(groups)}
+    answers["cluster parameters"] = indexed_dict
     answers["1st group, SSE"] = groups[0]['SSE']
 
     greatest_ari = max(all_aris)
