@@ -29,7 +29,9 @@ def plot_clusters(data, labels, title):
     plt.ylabel("Feature 2")
     plt.grid(True)
     plt.colorbar(label='Cluster label')
+    plt.savefig(f'/Users/giuliomartini/Desktop/FSU/DATA MINING/report/{title}.png')
     plt.show()
+
     return s
 
 def plot_eigenvalues(eigenvalues, title):
@@ -39,38 +41,29 @@ def plot_eigenvalues(eigenvalues, title):
     plt.xlabel("Index of Eigenvalue")
     plt.ylabel("Eigenvalue")
     plt.grid(True)
+    plt.savefig(f'/Users/giuliomartini/Desktop/FSU/DATA MINING/report/{title}.png')
     plt.show()
+    
     return s
 
 def adjusted_rand_index(labels_true, labels_pred):
-    contingency_table = np.histogram2d(
-        labels_true,
-        labels_pred,
-        bins=(np.unique(labels_true).size, np.unique(labels_pred).size),
-    )[0]
+    contingency_table = np.histogram2d(labels_true, labels_pred, bins=(np.unique(labels_true).size, np.unique(labels_pred).size))[0]
 
-    # Sum over rows and columns
-    sum_combinations_rows = np.sum(
-        [np.sum(nj) * (np.sum(nj) - 1) / 2 for nj in contingency_table]
-    )
-    sum_combinations_cols = np.sum(
-        [np.sum(ni) * (np.sum(ni) - 1) / 2 for ni in contingency_table.T]
-    )
+    sum_total = np.sum(contingency_table) * (np.sum(contingency_table) - 1) / 2
 
-    # Sum of combinations for all elements
-    N = np.sum(contingency_table)
-    sum_combinations_total = N * (N - 1) / 2
+    sum_rows = np.sum([np.sum(row) * (np.sum(row) - 1) / 2 for row in contingency_table])
 
-    # Calculate ARI
-    ari = (
-        np.sum([np.sum(n_ij) * (np.sum(n_ij) - 1) / 2 for n_ij in contingency_table])
-        - (sum_combinations_rows * sum_combinations_cols) / sum_combinations_total
-    ) / (
-        (sum_combinations_rows + sum_combinations_cols) / 2
-        - (sum_combinations_rows * sum_combinations_cols) / sum_combinations_total
-    )
+    sum_cols = np.sum([np.sum(col) * (np.sum(col) - 1) / 2 for col in contingency_table.T])
 
-    return ari
+    sum_cells = np.sum([cell * (cell - 1) / 2 for cell in contingency_table.flatten()])
+
+    numerator = sum_cells - sum_rows * sum_cols / sum_total
+    denominator = 0.5 * (sum_rows + sum_cols) - sum_rows * sum_cols / sum_total
+
+    if denominator == 0:
+        return 0
+    else:
+        return numerator / denominator
 
 def spectral(data, labels ,params_dict):
     n_clusters = params_dict['k']
@@ -119,7 +112,7 @@ def spectral_clustering():
     sigmas = [0.09, 0.1, 0.15, 0.2, 0.3, 0.5, 1, 0.8, 0.95, 2.5]
 
     groups = []
-    answers["spectral_function"] = spectral
+
     testing_data = data_segments[0]
     testing_labels = label_segments[0]
 
@@ -198,8 +191,8 @@ def spectral_clustering():
         cluster_analysis['SSE'] = sse
 
         groups.append(cluster_analysis)
-    indexed_dict = {i: entry for i, entry in enumerate(groups)}
-    answers["cluster parameters"] = indexed_dict
+
+    answers["cluster parameters"] = groups
     answers["1st group, SSE"] = groups[0]['SSE']
 
     greatest_ari = max(all_aris)

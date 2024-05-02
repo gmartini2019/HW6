@@ -16,34 +16,23 @@ import random
 ######################################################################
 
 def adjusted_rand_index(labels_true, labels_pred):
-    contingency_table = np.histogram2d(
-        labels_true,
-        labels_pred,
-        bins=(np.unique(labels_true).size, np.unique(labels_pred).size),
-    )[0]
+    contingency_table = np.histogram2d(labels_true, labels_pred, bins=(np.unique(labels_true).size, np.unique(labels_pred).size))[0]
 
-    # Sum over rows and columns
-    sum_combinations_rows = np.sum(
-        [np.sum(nj) * (np.sum(nj) - 1) / 2 for nj in contingency_table]
-    )
-    sum_combinations_cols = np.sum(
-        [np.sum(ni) * (np.sum(ni) - 1) / 2 for ni in contingency_table.T]
-    )
+    sum_total = np.sum(contingency_table) * (np.sum(contingency_table) - 1) / 2
 
-    # Sum of combinations for all elements
-    N = np.sum(contingency_table)
-    sum_combinations_total = N * (N - 1) / 2
+    sum_rows = np.sum([np.sum(row) * (np.sum(row) - 1) / 2 for row in contingency_table])
 
-    # Calculate ARI
-    ari = (
-        np.sum([np.sum(n_ij) * (np.sum(n_ij) - 1) / 2 for n_ij in contingency_table])
-        - (sum_combinations_rows * sum_combinations_cols) / sum_combinations_total
-    ) / (
-        (sum_combinations_rows + sum_combinations_cols) / 2
-        - (sum_combinations_rows * sum_combinations_cols) / sum_combinations_total
-    )
-    print(ari)
-    return ari
+    sum_cols = np.sum([np.sum(col) * (np.sum(col) - 1) / 2 for col in contingency_table.T])
+
+    sum_cells = np.sum([cell * (cell - 1) / 2 for cell in contingency_table.flatten()])
+
+    numerator = sum_cells - sum_rows * sum_cols / sum_total
+    denominator = 0.5 * (sum_rows + sum_cols) - sum_rows * sum_cols / sum_total
+
+    if denominator == 0:
+        return 0
+    else:
+        return numerator / denominator
 
 def compute_SSE(data, labels):
     """
@@ -73,42 +62,51 @@ def plot_clusters(data, labels, title):
     plt.ylabel("Feature 2")
     plt.grid(True)
     plt.colorbar(label='Cluster label')
+    plt.savefig(f'/Users/giuliomartini/Desktop/FSU/DATA MINING/report/{title}.png')
     plt.show()
+    
     return s
 
 
-def jarvis_patrick(
-    data: NDArray[np.floating], labels: NDArray[np.int32], params_dict: dict
-):
+def jarvis_patrick(data: np.ndarray, labels: np.ndarray, params_dict: dict):
     k = params_dict['k']
     smin = params_dict['smin']
 
+    # Calculate pairwise distances between points
     distances = cdist(data, data, 'euclidean')
 
+    # Determine the k-nearest neighbors for each point, excluding the point itself
     neighbors = np.argsort(distances, axis=1)[:, 1:k+1]
 
     n_points = data.shape[0]
     cluster_labels = -np.ones(n_points, dtype=int)
     cluster_id = 0
+    unvisited = set(range(n_points))
 
     for i in range(n_points):
-        if cluster_labels[i] == -1:  
-            current_cluster = []
-            for j in range(n_points):
-                if cluster_labels[j] == -1:  
-                    shared_neighbors = np.intersect1d(neighbors[i], neighbors[j])
-                    if shared_neighbors.size >= smin:
-                        current_cluster.append(j)
+        if i in unvisited:  # Process each point that has not been visited
+            current_cluster = set()
+            stack = [i]
+            while stack:
+                point = stack.pop()
+                if point in unvisited:
+                    unvisited.remove(point)
+                    current_cluster.add(point)
+                    for neighbor in neighbors[point]:
+                        if neighbor in unvisited:
+                            shared_neighbors = np.intersect1d(neighbors[point], neighbors[neighbor])
+                            if len(shared_neighbors) >= smin:
+                                stack.append(neighbor)
+
             if current_cluster:
-                cluster_labels[current_cluster] = cluster_id
+                cluster_labels[list(current_cluster)] = cluster_id
                 cluster_id += 1
 
-    sse = 0
-    for k in np.unique(cluster_labels):
-        cluster_points = data[cluster_labels == k]
-        centroid = cluster_points.mean(axis=0)
-        sse += np.sum((cluster_points - centroid) ** 2)
-    
+    # Compute Sum of Squared Errors (SSE) for each cluster
+    sse = sum(np.sum((data[cluster_labels == cid] - data[cluster_labels == cid].mean(axis=0))**2)
+              for cid in range(cluster_id))
+
+    # Calculate Adjusted Rand Index (ARI)
     ari = adjusted_rand_index(labels, cluster_labels)
 
     return cluster_labels, sse, ari
@@ -122,23 +120,23 @@ def jarvis_patrick_clustering():
         answers (dict): A dictionary containing the clustering results.
     """
 
-
+    answers = {}
+    answers["jarvis_patrick_function"] = jarvis_patrick
 
     data = np.load('question1_cluster_data.npy')
     labels = np.load('question1_cluster_labels.npy')
 
-    data = data[:2500]
-    labels = labels[:2500]
+    data = data[:5000]
+    labels = labels[:5000]
 
-    data_segments = [data[500*i:500*(i+1)] for i in range(5)]
-    label_segments = [labels[500*i:500*(i+1)] for i in range(5)]
+    data_segments = [data[1000*i:1000*(i+1)] for i in range(5)]
+    label_segments = [labels[1000*i:1000*(i+1)] for i in range(5)]
 
-    smins = [0.5, 3, 0.2, 1, 0.1, 0.01, 0.9, 4, 2, 0.25]
+    smins = [0.5, 3, 0.2, 1, 0.1, 0.01, 0.9, 0.75, 2, 0.25, 10, 4]
     k = [3,4,5,6,7,8]
 
 
-    answers = {}
-    answers["jarvis_patrick_function"] = jarvis_patrick
+
 
     groups = []
 
@@ -224,7 +222,7 @@ def jarvis_patrick_clustering():
     index_of_smallest_sse = tested_SSE.index(smallest_sse)
     plot_ARI = plot_clusters(data_segments[index_of_greatest_ari], tested_labels[index_of_greatest_ari], f"Clusters with Largest ARI (SMIN={tested_smin[index_of_best_smin]})")
 
-    plot_SSE = plot_clusters(testing_data, tested_labels[index_of_smallest_sse], f"Clusters with Smallest SSE (SMIN={tested_smin[index_of_smallest_sse]})")
+    plot_SSE = plot_clusters(testing_data, tested_labels[index_of_smallest_sse], f"Clusters with Smallest SSE (SMIN={tested_smin[index_of_best_smin]})")
 
     answers["cluster scatterplot with largest ARI"] = plot_ARI
     answers["cluster scatterplot with smallest SSE"] = plot_SSE
